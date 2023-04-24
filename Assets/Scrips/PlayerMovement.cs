@@ -4,64 +4,109 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public CharacterController controller;
+    [Header("Movement")]
+    [SerializeField] private float moveSpeed;
+    [SerializeField] private float deaceleration;
+    [SerializeField] private float groundDrag;
+    [SerializeField] private float jumpForce;
+    [SerializeField] private float jumpCooldown;
+    [SerializeField] private float airMultiplier;
+    [SerializeField] private Transform orientation;
+    [SerializeField] private Transform characterCenter;
+    [SerializeField] private Rigidbody rb;
 
-    [SerializeField] private float speed = 5;
-    [SerializeField] private float runSpeed = 10;
-    [SerializeField] private float gravity = -9.18f;
-    [SerializeField] private float jumpHeight = 3f;
+    [Header("GroundCheck")]
+    [SerializeField] private float playerHeight;
+    [SerializeField] private LayerMask whatIsGround;
 
-    [SerializeField] private Transform groundCheck;
-    [SerializeField] private float groundDistance = 0.4f;
-    [SerializeField] private LayerMask groundMask;
-    [SerializeField] private float rotationSpeed = 10f;
+    [Header("Keybinds")]
+    [SerializeField] private KeyCode jumpKey = KeyCode.Space;
 
-    Vector3 velocity;
-    bool isGrounded;
-    void Update()
+    [SerializeField] bool isGrounded;
+    bool isReadyToJump = true;
+
+    float horizontalInput;
+    float verticalInput;
+    Vector3 moveDirection;
+
+    private void Update()
     {
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+        isGrounded = Physics.Raycast(characterCenter.transform.position, Vector3.down,
+            playerHeight * 0.5f + 0.2f, whatIsGround);
 
-        if (isGrounded && velocity.y < 0)
+        MyInput();
+        SpeedControl();
+
+        if (isGrounded)
         {
-            velocity.y = -2f;
-        }
-
-        float currentSpeed;
-
-        if (Input.GetKey("left shift") && isGrounded)
-        {
-            currentSpeed = runSpeed;
+            rb.drag = groundDrag;
         }
         else
         {
-            currentSpeed = speed;
+            rb.drag = 0;
         }
 
-        if (Input.GetButtonDown("Jump") && isGrounded)
+    }
+
+    private void FixedUpdate()
+    {
+        MovePlayer();
+    }
+
+    private void MyInput()
+    {
+        horizontalInput = Input.GetAxisRaw("Horizontal");
+        verticalInput = Input.GetAxisRaw("Vertical");
+
+        if(Input.GetKey(jumpKey) && isReadyToJump && isGrounded)
         {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            isReadyToJump = false;
+            Jump();
+
+            Invoke(nameof(ResetJump), jumpCooldown);
         }
+    }
 
-        velocity.y += gravity * Time.deltaTime;
+    private void MovePlayer()
+    {
+        moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
 
-        controller.Move(velocity * Time.deltaTime);
-
-        float x = Input.GetAxis("Horizontal");
-        float z = Input.GetAxis("Vertical");
-
-        if(x == 0 && z == 0)
+        if (isGrounded)
         {
-            return;
+            rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
+        }
+        else
+        {
+            rb.AddForce(moveDirection.normalized * moveSpeed * airMultiplier * 10f, ForceMode.Force);
+        }
+    }
+
+    private void SpeedControl()
+    {
+        Vector3 flatVel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+
+        if (flatVel.magnitude > moveSpeed)
+        {
+            Vector3 limitedVelocity = flatVel.normalized * moveSpeed;
+            rb.velocity = new Vector3(limitedVelocity.x, rb.velocity.y, limitedVelocity.z);
         }
 
-        var movementDirection = new Vector3(x, 0, z);
+        if (horizontalInput == 0 && verticalInput == 0 
+            && rb.velocity != Vector3.zero && isGrounded)
+        {
+            rb.velocity = Vector3.Lerp(rb.velocity, Vector3.zero, Time.deltaTime * deaceleration);
+        }
+    }
 
-        movementDirection.Normalize();
+    private void Jump()
+    {
+        rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
 
-        controller.Move(movementDirection * currentSpeed * Time.deltaTime);
+        rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+    }
 
-        transform.rotation = Quaternion.Lerp(Quaternion.LookRotation(movementDirection),
-            transform.rotation, rotationSpeed * Time.deltaTime);
+    private void ResetJump()
+    {
+        isReadyToJump = true;
     }
 }
