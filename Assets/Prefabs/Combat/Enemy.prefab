@@ -75,6 +75,10 @@ PrefabInstance:
       propertyPath: isEnemy
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4480971662415726927, guid: 8cfd5035acb52354fb9ea5e36a5649e3, type: 3}
+      propertyPath: characterPortraitInQueue
+      value: 
+      objectReference: {fileID: 9027376638903313812, guid: fa0f6e4c4ec7ef84ab0b041d53b9b9ce, type: 3}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8cfd5035acb52354fb9ea5e36a5649e3, type: 3}
 --- !u!4 &5136871206149776585 stripped
