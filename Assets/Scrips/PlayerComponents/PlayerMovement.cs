@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,6 +30,9 @@ public class PlayerMovement : MonoBehaviour
     float verticalInput;
     Vector3 moveDirection;
 
+    public event EventHandler OnStartWalking;
+    public event EventHandler OnStopWalking;
+
     private void Update()
     {
         isGrounded = Physics.Raycast(characterCenter.transform.position, Vector3.down,
@@ -57,6 +61,11 @@ public class PlayerMovement : MonoBehaviour
     {
         horizontalInput = Input.GetAxisRaw("Horizontal");
         verticalInput = Input.GetAxisRaw("Vertical");
+
+        if ((horizontalInput != 0 || verticalInput != 0) && isGrounded)
+        {
+            OnStartWalking?.Invoke(this, EventArgs.Empty);
+        }
 
         if(Input.GetKey(jumpKey) && isReadyToJump && isGrounded)
         {
@@ -95,6 +104,7 @@ public class PlayerMovement : MonoBehaviour
             && rb.velocity != Vector3.zero && isGrounded)
         {
             rb.velocity = Vector3.Lerp(rb.velocity, Vector3.zero, Time.deltaTime * deaceleration);
+            OnStopWalking?.Invoke(this, EventArgs.Empty);
         }
     }
 
